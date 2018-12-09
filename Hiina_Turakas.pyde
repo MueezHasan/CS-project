@@ -1,10 +1,10 @@
 import os, random
 path = os.getcwd()
 
+
 suits = ["clubs","diamonds","hearts","spades"]
 values = {2:15,3:3,4:4,5:5,6:6,7:15,8:15,9:9,10:15,"jack":11,"queen":12,"king":13,"ace":14}
 values7 = {2:1,3:3,4:4,5:5,6:6,7:1,8:1,9:9,10:1,"jack":11,"queen":12,"king":13,"ace":14}        # in case a 7 is played, special cards need to be always legal
-
 #size_x = 1400
 #size_y = 1050
 #size_x = 1600
@@ -12,28 +12,31 @@ values7 = {2:1,3:3,4:4,5:5,6:6,7:1,8:1,9:9,10:1,"jack":11,"queen":12,"king":13,"
 
 
 class Card():
-    def __init__(self,number,suit,state="uncovered"):
+    def __init__(self,number,suit,state="uncovered", playability = False):
         self.number = number
         self.suit = suit
         self.value = values[self.number]
         self.value7 = values7[self.number]
         self.state = state
-        
+    
+    def __str__(self):
+        return (str(self.number)+" of "+str(self.suit))
     
     def display(self,x,y):
         self.x = x
         self.y = y
-        self.img = loadImage(path+"/playing-cards-assets/png/"+str(self.number)+"_of_"+str(self.suit)+".png")
-        image(self.img,self.x,self.y,100,145)
-        stroke(0)
-        strokeWeight(0.5)
-        noFill()
-        rect(self.x,self.y,100,145)
-
 
         if self.state == "covered":
             self.img = loadImage(path+"/playing-cards-assets/png/back@2x.png")
             image(self.img,self.x,self.y,100,145)
+        elif self.state == "uncovered":
+            self.img = loadImage(path+"/playing-cards-assets/png/"+str(self.number)+"_of_"+str(self.suit)+".png")
+            image(self.img,self.x,self.y,100,145)
+        
+        stroke(0)
+        strokeWeight(0.5)
+        noFill()
+        rect(self.x,self.y,100,145)
             
 
 
@@ -93,63 +96,117 @@ class Stack(list):      # the top card in the stack has a list index 0
 
 
 class TableCards(Stack):
-    def __init__(self,covered):
+    def __init__(self,state = "uncovered"):
         Stack.__init__(self)
-        self.covered = covered
-        for count in range(3):
-            DrawCard()
+        self.state = state
+        # self.state = "uncovered"
+        
+        
+    def display(self,x,y):
+        self.x = x
+        self.y = y
+        self.cnt = 0
+        if self.state == "uncovered":
+            for v in self:
+                v.display(self.x+ self.cnt, self.y)
+                self.cnt += 110
+    
+        elif self.state == "covered":
+            for card in self:
+                card.state = "covered"
+            for v in self:
+                v.display(self.x+ self.cnt, self.y)
+                self.cnt += 110
+                
+        
         
 
 
 
 
 class Hand(Stack):
-    def __init__(self):
+    def __init__(self,state="uncovered"):
         Stack.__init__(self)
         self.last_visible = 5
         self.cnt = 780     # starts with 6 cards, that means length 780
-        
-    def OrderCards(self):
-        self.orderedcards=[] # makes a separate list in which  the sorted out values are added 
-        for i in self: # goes through each of the cards in the original cards list, takes out their values and puts them inside the recently made list 
-            a = i.value
-            self.orderedcards.append(a)
-        order = sort(self.orderedcards) # the list of values is now sorted according to their numeric value. 
-
-        for v in order: # from the ordered list of values, you use each value to give you the key and the string from the dictionary that we created. 
-            hello = []
-            lol = values.get(v)
-            hello.append(lol)
-            
-            # TODO: what if there are different cards with the same values?
+        self.state = state
+        self.rightclick = loadImage(path+"/rightclick.png")
+        self.leftclick = loadImage(path+"/leftclick.png")
+        self.noleft = loadImage(path+"/noleft.png")
+        self.noright = loadImage(path+"/noright.png")
     
+    def order(self):
+        #print "for the order"
+        for count in range(len(self)):
+            for a in range(count):
+                if self[count].value > self[a].value:
+                    card = self.pop(count)
+                    self.insert(a,card)
+
+            
     def display(self,x,y):
         self.x = x
         self.y = y
         self.cnt = 0   
+
         if self.last_visible <= 7:
             self.first_visible = None
         else:
             self.first_visible = self.last_visible - 8
+            
+        if self.state == "covered":
+            for card in self:
+                card.state = "covered"
+        else:
+            for card in self:
+                card.state = "uncovered"
+
         for v in self[self.last_visible:self.first_visible:-1]:
             v.display(self.x+self.cnt,self.y)
             self.cnt += 130
-        rect(self.x-30,self.y+70,20,20)
-        rect(self.x+780,self.y+70,20,20)
+        
+        if self.state == "uncovered":
+            cnt = 0 
+            for x in reversed(self):
+                if self.Islegal(x) == False:
+                    self.whitecard = loadImage(path+"/greycard.png")
+                    image(self.whitecard,self.x+cnt,self.y)
+                cnt += 130
             
+            image(self.leftclick, self.x - 35, self.y,25,145)
+            image(self.rightclick, self.x + 760, self.y,25,145)
+        else:
+            pass
+            # image(self.noleft,self.x - 35,self.y,25,145)
+            # image(self.noright,self.x +760,self.y,25,145)
+        
+        # rect(self.x-30,self.y+70,20,20)
+        # rect(self.x+780,self.y+70,20,20)
+
+                
     # moves a card to the active pile
     def PlayCard(self,card):
         self.MoveTo(card,game.active_pile)
     
     # checks if a selected card in a hand can be played on the active pile
-    def Islegal(self,card):
-        if  game.active_pile[0].number == 7:
-            if (game.active_pile[0]).value7 >= card.value7:
-                return True
-        elif (game.active_pile[0]).value <= card.value:
+    def Islegal(self,card,cnt=0):
+        if game.active_pile == []:
+            self.playability = True
+            return True
+        elif  game.active_pile[cnt].number == 7 and 7 >= card.value7:
+            self.playability = True
+            return True
+        elif game.active_pile[cnt].number == 8:
+            return self.Islegal(card,cnt+1) 
+        elif game.active_pile[cnt].number == 2:
+            self.playability = True
+            return True
+        elif (game.active_pile[cnt]).value <= card.value:
+            self.playability = True
             return True
         else:
             return False
+
 
 
 
@@ -184,18 +241,74 @@ class Deck(Stack):
 
 class HiinaTurakas:
     def __init__(self):
-        self.players = ["Player 1", "Player 2", "Player 3", "Player 4"]
+        self.players = ["Player 1", "Player 2"] #, "Player 3", "Player 4"]
         self.turn = 0
         self.active_pile = Stack()
         self.discard_pile = Stack()
         self.deck = Deck()
-        print("deck initialized")
         random.shuffle(self.deck)
-    
+        self.Game_New = False
+        self.instructions = False
+        self.death = Rebirth()
+        self.handTop = Hand("covered") 
+        self.handBottom = Hand()
+        
+        self.tableB1 = TableCards()
+        self.tableB2 = TableCards("covered")
+        self.tableT1 = TableCards()
+        self.tableT2 = TableCards("covered")
+        
     def display(self):
         self.active_pile.display((1325)//2,(755)//2)
         self.deck.display(400,(755)//2)
         self.discard_pile.display(1000,(755)//2)
+        self.handTop.display(800-self.handTop.cnt//2,20)
+        self.handBottom.display((1600-self.handBottom.cnt)//2,735)
+            
+        self.tableB2.display(600,580)
+        self.tableB1.display(612,570)
+        self.tableT2.display(622,175)    
+        self.tableT1.display(610,185)
+        
+        fill (255)
+        if self.Game_New == False:
+            rect(80,60,150,70)
+            fill (0)
+            text ("New Game", 100,100)
+        else:
+            self.death.commit()
+            pass
+        if self.instructions == False:
+            fill (255)
+            rect(1300,60,200,500)
+            fill (0)
+            text ("Instructions", 1350,280)
+        elif self.instructions == True:
+            fill (255)
+            rect(1300,60,200,500)
+            fill (0)
+            text ("Nothing", 1320,100)
+            text ("in here",1320,120)
+            text ("yet",1320,140)
+            fill (0)
+            rect(1420,510,70,30)
+            fill (255)
+            text("return",1425,530)
+            
+    def startHands(self):
+        for count in range(6):
+            self.handTop.DrawCard()
+            self.deck.MoveTo(self.deck[count],self.active_pile)
+            self.handBottom.DrawCard()
+        self.active_pile.MoveStack(self.discard_pile)
+        for count in range(5):
+            self.deck.MoveTo(self.deck[count],self.active_pile)
+        self.handBottom.order()
+        for count in range(3):
+            self.tableB1.DrawCard()
+            self.tableB2.DrawCard()
+            self.tableT1.DrawCard()
+            self.tableT2.DrawCard()
         
     def addPlayer(num):
         name = "Player "+ str(num)
@@ -207,24 +320,37 @@ class HiinaTurakas:
         name = "Player "+ str(num)
         if name in self.players:
             self.players.remove(name)
+            
+    def click(self):
+        r = mouseX
+        c = mouseY
+        
+        if  80 <= mouseX <=230 and 60 <= mouseY <=130:
+            self.Game_New = True
+        if 1300 <= mouseX <= 1500 and 60<= mouseY <= 560:
+            self.instructions = True
+        if 1420<= mouseX <= 1490 and 520 <= mouseY <= 540:
+            self.instructions = False
 
+
+class Rebirth():
+    def __init__(self):
+        pass
+    def commit(self):
+        global game
+        del game
+        background(120,147,83)
+        game = HiinaTurakas()
+        game.startHands()
         
 # initializing
 
 game = HiinaTurakas()
-hand1 = Hand() 
-hand2 = Hand()
+game.startHands()
 
    
-for count in range(6):
-    hand1.DrawCard()
-    game.deck.MoveTo(game.deck[count],game.active_pile)
-    hand2.DrawCard()
-game.active_pile.MoveStack(game.discard_pile)
-for count in range(5):
-    game.deck.MoveTo(game.deck[count],game.active_pile)
-    
 
+    
 #print(path+"/playing-cards-assets/png/"+str(card.number)+"_of_"+str(card.suit)+".png")
 def setup():
      
@@ -239,13 +365,17 @@ def draw():
     textSize(20)
     fill(0,0,0)
 
-    #hand1.display((size_x//2)-hand1.cnt//2,20)
-    #hand2.display((size_x-hand2.cnt)//2,size_y-145-20)
+    #game.handTop.display((size_x//2)-handTop.cnt//2,20)
+    #game.handBottom.display((size_x-handBottom.cnt)//2,size_y-145-20)
     #game.active_pile.display((size_x-275)//2,(size_y-145)//2)
     #game.deck.display(size_x//4,(size_y-145)//2)
     #game.discard_pile.display((3*size_x)//4-200,(size_y-145)//2)
 
-    hand1.display(800-hand1.cnt//2,20)
-    hand2.display((1600-hand2.cnt)//2,735)
+
+
     game.display()
-    pass
+
+
+    
+def mouseClicked():
+    game.click()
