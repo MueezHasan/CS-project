@@ -18,6 +18,8 @@ class Card():
         self.value = values[self.number]
         self.value7 = values7[self.number]
         self.state = state
+        self.x = None
+        self.y = None
 
     def __str__(self):
         return (str(self.number)+" of "+str(self.suit))
@@ -37,10 +39,6 @@ class Card():
         strokeWeight(0.5)
         noFill()
         rect(self.x,self.y,100,145)
-            
-
-
-
 
 
 
@@ -57,18 +55,18 @@ class Stack(list):      # the top card in the stack has a list index 0
         self.canright = False
         
     # used for the active pile, covers discarding (move stack to discard pile) and picking up (move stack to hand) 
-    def MoveStack(self,target):
+    def moveStack(self,target):
         temp_list = self[::-1]   # moves the bottom cards first
         for card in temp_list:
             self.remove(card)
             target.insert(0,card)
 
-    def MoveTo(self,card, target): 
+    def moveTo(self,card, target): 
         target.insert(0,card)
         self.remove(card)
 
-    def DrawCard(self):
-        game.deck.MoveTo(game.deck[0],self)
+    def drawCard(self):
+        game.deck.moveTo(game.deck[0],self)
     
     def display(self,x,y):
         self.x = x
@@ -81,8 +79,14 @@ class Stack(list):      # the top card in the stack has a list index 0
         for v in self[self.last_visible:self.first_visible:-1]:
             v.display(self.x+self.cnt,self.y)
             self.cnt += 30
+        stroke(120,147,83)
+        fill (120,147,83)
+        rect(self.x,self.y+170,25,-20)
+        fill (255)
         text (len(self),self.x,self.y+170)
-    
+
+        # adds number of cards as text below it
+            
         if self.arrows == True and len(self) > 3:
             if self.first_visible == None:         # can not scroll further to the right
                 image(self.noright,self.x + 200,self.y,25,145)
@@ -96,7 +100,11 @@ class Stack(list):      # the top card in the stack has a list index 0
             else:
                 image(self.leftclick, self.x - 35, self.y,25,145)
                 self.canleft = True
-            
+        else:
+            stroke(120,147,83)
+            fill(120,147,83)
+            rect(self.x + 760,self.y,25,145)
+            rect(self.x - 35,self.y,25,145)
             
             
     
@@ -141,10 +149,12 @@ class TableCards(Stack):
             for v in self:
                 v.display(self.x+ self.cnt, self.y)
                 self.cnt += 110
-                
         
-        
-
+    def clicked(self,card):
+        self.moveTo(card,game.handBottom)
+        stroke(120,147,83)
+        fill(120,147,83)
+        rect(self.x,self.y,110*3,146)
 
 
 
@@ -194,6 +204,11 @@ class Hand(Stack):
                     self.whitecard = loadImage(path+"/greycard.png")
                     image(self.whitecard,self.x+cnt,self.y)
                 cnt += 130
+            while(cnt < 760):
+                stroke(120,147,83)
+                fill(120,147,83)
+                rect(self.x+cnt,self.y,100,145)
+                cnt += 130
             if len(self)>5:
                 if self.first_visible == None:         # can not scroll further to the right
                     image(self.noright,self.x + 760,self.y,25,145)
@@ -207,18 +222,26 @@ class Hand(Stack):
                 else:
                     image(self.leftclick, self.x - 35, self.y,25,145)
                     self.canleft = True
+            else:
+                stroke(120,147,83)
+                fill(120,147,83)
+                rect(self.x + 760,self.y,25,145)
+                rect(self.x - 35,self.y,25,145)
+                
         
         # rect(self.x-30,self.y+70,20,20)
         # rect(self.x+780,self.y+70,20,20)
 
                 
     # moves a card to the active pile
-    def PlayCard(self,card):
-        self.MoveTo(card,game.active_pile)
+    def playCard(self,card):
+        self.moveTo(card,game.active_pile)
+#        if len(self) < 6 or self.last_visible > 6:
+#            self.change_last_visible(increase="False")
     
     # checks if a selected card in a hand can be played on the active pile
     def Islegal(self,card,cnt=0):
-        if game.active_pile == []:
+        if len(game.active_pile) == cnt:
             self.playability = True
             return True
         elif  game.active_pile[cnt].number == 7 and 7 >= card.value7:
@@ -235,9 +258,11 @@ class Hand(Stack):
         else:
             self.playability = False
             return False
-
-
-
+        
+    def clicked(self,card):
+        
+        # TODO: if the card is legal to play
+        self.playCard(card)
 
 
 
@@ -254,18 +279,20 @@ class Deck(Stack):
         self.x=x
         self.y=y 
         self.img = loadImage(path+"/playing-cards-assets/png/back@2x.png")
-        if len(self)!=0:
+        if len(self)>0:
             image(self.img,self.x,self.y,100,145)
-            stroke(0)
-            strokeWeight(0.5)
-            noFill()
-            rect(self.x,self.y,100,145)
+            fill(120,147,83)
+            rect(self.x,self.y+170,20,-20)
+            fill (255)
             text (len(self),self.x,self.y+170)
         # adds number of cards as text below it
+        else:
+            fill(120,147,83)
+            rect(self.x,self.y,100,145)
+            fill (120,147,83)
+            rect(self.x,self.y+170,20,-20)
+
     
-
-
-
 
 
 class HiinaTurakas:
@@ -327,21 +354,20 @@ class HiinaTurakas:
             text("return",1425,530)
             
     def startHands(self):
-#        for count in range(6):
-        for count in range(10):
-            self.handTop.DrawCard()
-            self.deck.MoveTo(self.deck[count],self.active_pile)
-            self.handBottom.DrawCard()
-#        self.handBottom.DrawCard()
-        self.active_pile.MoveStack(self.discard_pile)
+        for count in range(6):
+            self.handTop.drawCard()
+            self.deck.moveTo(self.deck[count],self.active_pile)
+            self.handBottom.drawCard()
+#        self.handBottom.drawCard()
+        self.active_pile.moveStack(self.discard_pile)
         for count in range(5):
-            self.deck.MoveTo(self.deck[count],self.active_pile)
+            self.deck.moveTo(self.deck[count],self.active_pile)
         self.handBottom.order()
         for count in range(3):
-            self.tableB1.DrawCard()
-            self.tableB2.DrawCard()
-            self.tableT1.DrawCard()
-            self.tableT2.DrawCard()
+            self.tableB1.drawCard()
+            self.tableB2.drawCard()
+            self.tableT1.drawCard()
+            self.tableT2.drawCard()
         
     def addPlayer(num):
         name = "Player "+ str(num)
@@ -364,28 +390,63 @@ class HiinaTurakas:
             self.instructions = True
         if 1420<= mouseX <= 1490 and 520 <= mouseY <= 540:
             self.instructions = False
-
+            
+    # finds whether a card in the hand was clicked
+        for card in self.handBottom[self.handBottom.last_visible:self.handBottom.first_visible:-1]:
+            if card.x != None and card.y != None and card.x < mouseX < card.x+100 and card.y < mouseY < card.y+145:
+                self.handBottom.clicked(card)
+    
+    # finds whether a tablecard was clicked
+        if len(self.tableB1) == 0:
+            for card in self.tableB2:
+                if card.x < mouseX < card.x+100 and card.y < mouseY < card.y+145:
+                    self.tableB2.clicked(card)
+        else:
+            for card in self.tableB1:
+                if card.x < mouseX < card.x+100 and card.y < mouseY < card.y+145:
+                    self.tableB1.clicked(card)
+    
+    # clicking the deck picks up a card
+        if len(self.deck) > 0 and 400 < mouseX < 500 and (755)//2 < mouseY < (755)//2 + 145:
+            self.handBottom.drawCard() 
+            self.handBottom.order()
+            
+    # clicking the active pile moves content to hand
+        if self.active_pile.x <= mouseX < self.active_pile.x+200 and self.active_pile.y <= mouseY <= self.active_pile.y+100:
+            self.active_pile.moveStack(self.handBottom)
+            stroke(120,147,83)
+            fill(120,147,83)
+            rect(self.active_pile.x-35, self.active_pile.y,270,146)
+            self.handBottom.order()
+    
+                           
     # hand's left button
-        if game.handBottom.x-35 <= mouseX < game.handBottom.x and game.handBottom.y <= mouseY <= game.handBottom.y+100 and self.handBottom.canleft == True:
+        if self.handBottom.x-35 <= mouseX < self.handBottom.x and self.handBottom.y <= mouseY <= self.handBottom.y+100 and self.handBottom.canleft == True:
             self.handBottom.change_last_visible(increase = True)
     # hand's right button
-        if game.handBottom.x + 760 < mouseX <= game.handBottom.x + 795 and game.handBottom.y <= mouseY <= game.handBottom.y+100 and self.handBottom.canright == True:
+        if self.handBottom.x + 760 < mouseX <= self.handBottom.x + 795 and self.handBottom.y <= mouseY <= self.handBottom.y+100 and self.handBottom.canright == True:
             self.handBottom.change_last_visible(increase = False)
 
     # active pile's left button
-        if game.active_pile.x-35 <= mouseX < game.active_pile.x and game.active_pile.y <= mouseY <= game.active_pile.y+100 and self.active_pile.canleft == True:
+        if self.active_pile.x-35 <= mouseX < self.active_pile.x and self.active_pile.y <= mouseY <= self.active_pile.y+100 and self.active_pile.canleft == True:
             self.active_pile.change_last_visible(increase = True)
     # active pile's right button
-        if game.active_pile.x+200 < mouseX <= game.active_pile.x+235 and game.active_pile.y <= mouseY <= game.active_pile.y+100 and self.active_pile.canright == True:
+        if self.active_pile.x+200 < mouseX <= self.active_pile.x+235 and self.active_pile.y <= mouseY <= self.active_pile.y+100 and self.active_pile.canright == True:
             self.active_pile.change_last_visible(increase = False)
             
 #     discard pile's left button
-        if game.discard_pile.x-35 <= mouseX < game.discard_pile.x and game.discard_pile.y <= mouseY <= game.discard_pile.y+100 and self.discard_pile.canleft == True:
+        if self.discard_pile.x-35 <= mouseX < self.discard_pile.x and self.discard_pile.y <= mouseY <= self.discard_pile.y+100 and self.discard_pile.canleft == True:
             self.discard_pile.change_last_visible(increase = True)
 #     discard pile's right button
-        if game.discard_pile.x+200 < mouseX <= game.discard_pile.x+235 and game.discard_pile.y <= mouseY <= game.discard_pile.y+100 and self.discard_pile.canright == True:
+        if self.discard_pile.x+200 < mouseX <= self.discard_pile.x+235 and self.discard_pile.y <= mouseY <= self.discard_pile.y+100 and self.discard_pile.canright == True:
             self.discard_pile.change_last_visible(increase = False)
 
+     
+
+                
+        
+# this class serves as an object separate from the game
+# it gets called to restart it when the 'new game' button is clicked
 class Rebirth():
     def __init__(self):
         pass
