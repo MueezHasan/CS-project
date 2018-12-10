@@ -18,7 +18,7 @@ class Card():
         self.value = values[self.number]
         self.value7 = values7[self.number]
         self.state = state
-    
+
     def __str__(self):
         return (str(self.number)+" of "+str(self.suit))
     
@@ -45,9 +45,17 @@ class Card():
 
 
 class Stack(list):      # the top card in the stack has a list index 0
-    def __init__(self):
+    def __init__(self, arrows = False):
+        self.arrows = arrows
         self.last_visible = 3   # index of the last visible displayed card defaulted to top card
         self.cnt = 0            # default x-length at start
+        self.rightclick = loadImage(path+"/rightclick.png")
+        self.leftclick = loadImage(path+"/leftclick.png")
+        self.noleft = loadImage(path+"/noleft.png")
+        self.noright = loadImage(path+"/noright.png")
+        self.canleft = False       # Booleans that decide whether stack can be scrolled
+        self.canright = False
+        
     # used for the active pile, covers discarding (move stack to discard pile) and picking up (move stack to hand) 
     def MoveStack(self,target):
         temp_list = self[::-1]   # moves the bottom cards first
@@ -74,7 +82,23 @@ class Stack(list):      # the top card in the stack has a list index 0
             v.display(self.x+self.cnt,self.y)
             self.cnt += 30
         text (len(self),self.x,self.y+170)
-        
+    
+        if self.arrows == True and len(self) > 3:
+            if self.first_visible == None:         # can not scroll further to the right
+                image(self.noright,self.x + 200,self.y,25,145)
+                self.canright = False
+            else:
+                image(self.rightclick, self.x + 200, self.y,25,145)
+                self.canright = True
+            if self.last_visible == len(self)-1:   # can not scroll further to the left
+                image(self.noleft,self.x - 35,self.y,25,145)
+                self.canleft = False
+            else:
+                image(self.leftclick, self.x - 35, self.y,25,145)
+                self.canleft = True
+            
+            
+            
     
     # gets called by mouseclick function
     def change_last_visible(self,increase):
@@ -130,10 +154,7 @@ class Hand(Stack):
         self.last_visible = 5
         self.cnt = 780     # starts with 6 cards, that means length 780
         self.state = state
-        self.rightclick = loadImage(path+"/rightclick.png")
-        self.leftclick = loadImage(path+"/leftclick.png")
-        self.noleft = loadImage(path+"/noleft.png")
-        self.noright = loadImage(path+"/noright.png")
+        
     
     def order(self):
         #print "for the order"
@@ -149,11 +170,10 @@ class Hand(Stack):
         self.y = y
         self.cnt = 0   
 
-        if self.last_visible <= 7:
+        if self.last_visible <=5:
             self.first_visible = None
         else:
-            self.first_visible = self.last_visible - 8
-            
+            self.first_visible = self.last_visible - 6            
         if self.state == "covered":
             for card in self:
                 card.state = "covered"
@@ -167,18 +187,26 @@ class Hand(Stack):
         
         if self.state == "uncovered":
             cnt = 0 
-            for x in reversed(self):
+#            for x in reversed(self):
+            for x in self[self.last_visible:self.first_visible:-1]:
+    
                 if self.Islegal(x) == False:
                     self.whitecard = loadImage(path+"/greycard.png")
                     image(self.whitecard,self.x+cnt,self.y)
                 cnt += 130
-            
-            image(self.leftclick, self.x - 35, self.y,25,145)
-            image(self.rightclick, self.x + 760, self.y,25,145)
-        else:
-            pass
-            # image(self.noleft,self.x - 35,self.y,25,145)
-            # image(self.noright,self.x +760,self.y,25,145)
+            if len(self)>5:
+                if self.first_visible == None:         # can not scroll further to the right
+                    image(self.noright,self.x + 760,self.y,25,145)
+                    self.canright = False
+                else:
+                    image(self.rightclick, self.x + 760, self.y,25,145)
+                    self.canright = True
+                if self.last_visible == len(self)-1:   # can not scroll further to the left
+                    image(self.noleft,self.x - 35,self.y,25,145)
+                    self.canleft = False
+                else:
+                    image(self.leftclick, self.x - 35, self.y,25,145)
+                    self.canleft = True
         
         # rect(self.x-30,self.y+70,20,20)
         # rect(self.x+780,self.y+70,20,20)
@@ -205,6 +233,7 @@ class Hand(Stack):
             self.playability = True
             return True
         else:
+            self.playability = False
             return False
 
 
@@ -232,7 +261,7 @@ class Deck(Stack):
             noFill()
             rect(self.x,self.y,100,145)
             text (len(self),self.x,self.y+170)
-        # add number of cards as text below it
+        # adds number of cards as text below it
     
 
 
@@ -243,8 +272,8 @@ class HiinaTurakas:
     def __init__(self):
         self.players = ["Player 1", "Player 2"] #, "Player 3", "Player 4"]
         self.turn = 0
-        self.active_pile = Stack()
-        self.discard_pile = Stack()
+        self.active_pile = Stack(arrows=True)
+        self.discard_pile = Stack(arrows=True)
         self.deck = Deck()
         random.shuffle(self.deck)
         self.Game_New = False
@@ -262,8 +291,10 @@ class HiinaTurakas:
         self.active_pile.display((1325)//2,(755)//2)
         self.deck.display(400,(755)//2)
         self.discard_pile.display(1000,(755)//2)
-        self.handTop.display(800-self.handTop.cnt//2,20)
-        self.handBottom.display((1600-self.handBottom.cnt)//2,735)
+#        self.handTop.display(800-self.handTop.cnt//2,20)
+#        self.handBottom.display((1600-self.handBottom.cnt)//2,735)
+        self.handTop.display(440,20)
+        self.handBottom.display(440,735)
             
         self.tableB2.display(600,580)
         self.tableB1.display(612,570)
@@ -296,10 +327,12 @@ class HiinaTurakas:
             text("return",1425,530)
             
     def startHands(self):
-        for count in range(6):
+#        for count in range(6):
+        for count in range(10):
             self.handTop.DrawCard()
             self.deck.MoveTo(self.deck[count],self.active_pile)
             self.handBottom.DrawCard()
+#        self.handBottom.DrawCard()
         self.active_pile.MoveStack(self.discard_pile)
         for count in range(5):
             self.deck.MoveTo(self.deck[count],self.active_pile)
@@ -332,6 +365,26 @@ class HiinaTurakas:
         if 1420<= mouseX <= 1490 and 520 <= mouseY <= 540:
             self.instructions = False
 
+    # hand's left button
+        if game.handBottom.x-35 <= mouseX < game.handBottom.x and game.handBottom.y <= mouseY <= game.handBottom.y+100 and self.handBottom.canleft == True:
+            self.handBottom.change_last_visible(increase = True)
+    # hand's right button
+        if game.handBottom.x + 760 < mouseX <= game.handBottom.x + 795 and game.handBottom.y <= mouseY <= game.handBottom.y+100 and self.handBottom.canright == True:
+            self.handBottom.change_last_visible(increase = False)
+
+    # active pile's left button
+        if game.active_pile.x-35 <= mouseX < game.active_pile.x and game.active_pile.y <= mouseY <= game.active_pile.y+100 and self.active_pile.canleft == True:
+            self.active_pile.change_last_visible(increase = True)
+    # active pile's right button
+        if game.active_pile.x+200 < mouseX <= game.active_pile.x+235 and game.active_pile.y <= mouseY <= game.active_pile.y+100 and self.active_pile.canright == True:
+            self.active_pile.change_last_visible(increase = False)
+            
+#     discard pile's left button
+        if game.discard_pile.x-35 <= mouseX < game.discard_pile.x and game.discard_pile.y <= mouseY <= game.discard_pile.y+100 and self.discard_pile.canleft == True:
+            self.discard_pile.change_last_visible(increase = True)
+#     discard pile's right button
+        if game.discard_pile.x+200 < mouseX <= game.discard_pile.x+235 and game.discard_pile.y <= mouseY <= game.discard_pile.y+100 and self.discard_pile.canright == True:
+            self.discard_pile.change_last_visible(increase = False)
 
 class Rebirth():
     def __init__(self):
