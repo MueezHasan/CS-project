@@ -135,41 +135,42 @@ class Stack(list):      # the top card in the stack has a list index 0
 # checks if a selected card can be played on the active pile
     def isLegal(self,card,cnt=0):
         if len(game.active_pile) == cnt:
-#            self.playability = True
             return True
-        elif  game.active_pile[cnt].number == 7 and 7 >= card.value7:
-#            self.playability = True
-            return True
-        elif game.active_pile[cnt].number == 8:
-            return self.isLegal(card,cnt+1) 
-        elif game.active_pile[cnt].number == 2:
-#            self.playability = True
-            return True
-        elif (game.active_pile[cnt]).value <= card.value:
-#            self.playability = True
-            return True
+        elif game.userPlayed != False:
+            if card.number == game.userPlayed:
+                return True
+            else:
+                return False
         else:
-#            self.playability = False
-            return False    
+            if  game.active_pile[cnt].number == 7 and 7 >= card.value7:
+                return True
+            elif game.active_pile[cnt].number == 8:
+                return self.isLegal(card,cnt+1) 
+            elif game.active_pile[cnt].number == 2:
+                return True
+            elif (game.active_pile[cnt]).value <= card.value:
+                return True
+            else:
+                return False    
    
    # used for hands and tablecards, cpu player finds what card in stack to play
-    def playLowestLegal(self):
-        canPlay = False
-        if len(self) == 0:
-            for c in reversed(self):
-                if self.isLegal(c):
-                    card = c
-                    canPlay = True
-                    break
-            if canPlay == True:
-                self.moveTo(card,self.active_pile)
-                # checks for more of the same number
-                for c in self:
-                    if c.number == card.number:
-                        self.moveTo(c,self.active_pile)
-        # if there is no move possible, has to pick up active deck
-            else:
-                self.active_pile.moveStack(game.handTop)
+#    def playLowestLegal(self):
+#        canPlay = False
+#        if len(self) == 0:
+#            for c in reversed(self):
+#                if self.isLegal(c):
+#                    card = c
+#                    canPlay = True
+#                    break
+#            if canPlay == True:
+#                self.moveTo(card,self.active_pile)
+#                # checks for more of the same number
+#                for c in self:
+#                    if c.number == card.number:
+#                        self.moveTo(c,self.active_pile)
+#        # if there is no move possible, has to pick up active deck
+#            else:
+#                self.active_pile.moveStack(game.handTop)
 
 
 
@@ -319,27 +320,37 @@ class Deck(Stack):
             pass
     
 
-
+# the main game class
 class HiinaTurakas:
     def __init__(self):
-        self.prepRound = True
-        self.cpuStarts = None
+        
+        # initialising boolean variables
+        self.prepRound = True          # the first round is the preparation round
+        self.cpuStarts = None          # who starts the game?
+        self.userPlayed = False         # has the user played a card on his turn?
+        self.blockEnd = True           # blocks the 'end turn' button
+        self.instructions = False      # toggles instructions on the right
+        self.gameend = False           # win/lose condition
+        
+        # starting the stacks
         self.active_pile = Stack(arrows=True)
         self.discard_pile = Stack(arrows=True)
-        self.deck = Deck()
-        random.shuffle(self.deck)
-        self.Game_New = False
-        self.instructions = False
-        self.death = Rebirth()
         self.handTop = Hand("covered")
-        self.handTop = Hand() 
         self.handBottom = Hand()
-        self.gameend = False
-        
         self.tableB1 = TableCards()
         self.tableB2 = TableCards("covered")
         self.tableT1 = TableCards()
         self.tableT2 = TableCards("covered")
+        self.deck = Deck()
+        random.shuffle(self.deck)
+        
+        # for starting a new game
+        self.Game_New = False
+        self.death = Rebirth()
+        
+
+        
+
         
     def display(self):
         
@@ -367,9 +378,15 @@ class HiinaTurakas:
         else:
             self.death.commit()
         
-        fill (255)
+        if self.blockEnd:
+            fill (200)
+        else:
+            fill (255)
         rect(150,735,150,120)
-        fill (0)
+        if self.blockEnd:
+            fill(70)
+        else:
+            fill (0)
         text ("End Turn", 170,795)
         
         if self.instructions == False:
@@ -406,11 +423,12 @@ class HiinaTurakas:
             self.tableT2.drawCard()
         self.tableT1.order()
         self.tableT2.order()
-        
+
+    def whoBegins(self):
     # decides who starts first based on lower card
-        if self.handTop[2].value < self.handBottom [5].value:
+        if self.handTop[2].value < self.handBottom [2].value:
             self.cpuStarts = True
-        elif self.handTop[2].value == self.handBottom [5].value:   
+        elif self.handTop[2].value == self.handBottom [2].value:   
         # same value = chooses randomly
             choice = random.randint(0,1)
             if choice == 0:
@@ -429,22 +447,13 @@ class HiinaTurakas:
                     self.sequential += 1
         if self.sequential == 4 or num == 10:
             self.active_pile.moveStack(self.discard_pile)
+            self.userPlayed = False
 #            stroke(120,147,83)
 #            fill(120,147,83)
 #            rect((1325)//2-35, (755)//2,270,146)
     
         
-                                 
-#    def addPlayer(num):
-#        name = "Player "+ str(num)
-#        if name not in self.players:
-#            self.players.append(name)
-#        self.players.sort()
-    
-#    def removePlayer(num):
-#        name = "Player "+ str(num)
-#        if name in self.players:
-#            self.players.remove(name)
+
             
     def click(self):
         r = mouseX
@@ -454,7 +463,7 @@ class HiinaTurakas:
             self.Game_New = True
         if 1300 <= mouseX <= 1500 and 60<= mouseY <= 560:
             self.instructions = True
-        if 1420<= mouseX <= 1490 and 520 <= mouseY <= 540:
+        if 1420 <= mouseX <= 1490 and 520 <= mouseY <= 540:
             self.instructions = False
             
     # finds whether a card in the hand was clicked
@@ -466,6 +475,14 @@ class HiinaTurakas:
                         self.handBottom.remove(card)
                     else:
                         self.handBottom.clicked(card)
+                        if self.handBottom.isLegal(card):                        
+                            if len(self.handBottom) >= 3:
+                                self.blockEnd = False
+                            if card.number != 2 and self.userPlayed == False:
+                                self.userPlayed = card.number
+                                if len(self.deck) == 0:
+                                    self.blockEnd = False
+    
         
     # finds whether a tablecard was clicked
         if self.gameend != True and len(self.handBottom) == 0 and len(self.deck) == 0:
@@ -477,16 +494,20 @@ class HiinaTurakas:
                 for card in self.tableB1:
                     if card.x < mouseX < card.x+100 and card.y < mouseY < card.y+145:
                         self.tableB1.clicked(card)
+                        
         
     # clicking the deck picks up a card
-        if self.gameend != True and len(self.deck) > 0 and 400 < mouseX < 500 and (755)//2 < mouseY < (755)//2 + 145:
+        if self.gameend != True and self.prepRound != True and len(self.deck) > 0 and len(self.handBottom) < 3 and 400 < mouseX < 500 and (755)//2 < mouseY < (755)//2 + 145:
             self.handBottom.drawCard() 
             self.handBottom.order()
+            if len(self.handBottom) == 3 or len(self.deck) == 0:
+                if len(self.active_pile) != 0 and self.active_pile[0].number != 2:
+                    self.blockEnd = False
 
             
             
     # clicking the active pile moves content to hand
-        if self.gameend and self.prepRound != True and len(self.active_pile) > 0 and self.active_pile.x <= mouseX < self.active_pile.x+200 and self.active_pile.y <= mouseY <= self.active_pile.y+145:
+        if self.gameend != True and self.prepRound != True and len(self.active_pile) > 0 and self.userPlayed == False and self.active_pile.x <= mouseX < self.active_pile.x+200 and self.active_pile.y <= mouseY <= self.active_pile.y+145:
             self.active_pile.moveStack(self.handBottom)
             stroke(120,147,83)
 #            fill(120,147,83)
@@ -518,14 +539,17 @@ class HiinaTurakas:
             self.discard_pile.change_last_visible(increase = False)
             
     # end turn button makes the cpu play
-        if self.gameend != True and 150 < mouseX < 300 and 735 < mouseY < 855:
-            # TODO: add conditions for button availability
+        if self.gameend != True and self.blockEnd == False and 150 < mouseX < 300 and 735 < mouseY < 855:
             self.cpuPlays()
 
-                    
+# the decision-making for the computer player                    
     def cpuPlays(self):
-         pickedUp = False
+        # local variables
+         pickedUp = False    # resets computer turn states
          canPlay = False
+         self.userPlayed = False   # resets player turn states
+         self.blockEnd = True
+         
          if len(self.deck) == 0 and len(self.handTop) == 0:
     # plays the lowest legal card in covered table cards
 #            self.tableT1.playLowestLegal()
@@ -599,10 +623,15 @@ class HiinaTurakas:
          
 # gameplay loop
     def gameplay(self):
+        
+        
         if len(self.active_pile) > 0:
             self.activeCount() 
         if len(self.tableB1) == 3:
             self.prepRound = False
+        # these two if statements will only happen during the first loop
+            if self.cpuStarts == None:
+                self.whoBegins()
             if self.cpuStarts == True:
                 self.cpuPlays()
                 self.cpuStarts = False
