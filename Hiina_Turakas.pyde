@@ -322,8 +322,8 @@ class Deck(Stack):
 
 class HiinaTurakas:
     def __init__(self):
-#        self.players = ["Player 1", "Player 2"] #, "Player 3", "Player 4"]
-        self.turn = 0
+        self.prepRound = True
+        self.cpuStarts = None
         self.active_pile = Stack(arrows=True)
         self.discard_pile = Stack(arrows=True)
         self.deck = Deck()
@@ -331,7 +331,7 @@ class HiinaTurakas:
         self.Game_New = False
         self.instructions = False
         self.death = Rebirth()
-#        self.handTop = Hand("covered")
+        self.handTop = Hand("covered")
         self.handTop = Hand() 
         self.handBottom = Hand()
         self.gameend = False
@@ -397,13 +397,26 @@ class HiinaTurakas:
             self.handTop.drawCard()
             self.handBottom.drawCard()
         self.handBottom.order()
+        self.handTop.order()
         for count in range(3):
-            self.tableB1.drawCard()
+#            self.tableB1.drawCard()
             self.tableB2.drawCard()
-            self.tableT1.drawCard()
+            self.handTop.moveTo(self.handTop[0],self.tableT1)
+#            self.tableT1.drawCard()
             self.tableT2.drawCard()
-        self.tableB1.order()
-        self.tableB2.order()
+        self.tableT1.order()
+        self.tableT2.order()
+        
+    # decides who starts first based on lower card
+        if self.handTop[2].value < self.handBottom [5].value:
+            self.cpuStarts = True
+        elif self.handTop[2].value == self.handBottom [5].value:   
+        # same value = chooses randomly
+            choice = random.randint(0,1)
+            if choice == 0:
+                self.cpuStarts = True
+        else:
+            self.cpuStarts = False
    
 # checks whether to discard the active pile
 # discards when 10 is played or when there are 4 same numbers in a row         
@@ -448,7 +461,11 @@ class HiinaTurakas:
         if self.gameend != True:
             for card in self.handBottom[self.handBottom.last_visible:self.handBottom.first_visible:-1]:
                 if card.x != None and card.y != None and card.x < mouseX < card.x+100 and card.y < mouseY < card.y+145:
-                    self.handBottom.clicked(card)
+                    if self.prepRound == True:
+                        self.tableB1.append(card)
+                        self.handBottom.remove(card)
+                    else:
+                        self.handBottom.clicked(card)
         
     # finds whether a tablecard was clicked
         if self.gameend != True and len(self.handBottom) == 0 and len(self.deck) == 0:
@@ -465,15 +482,19 @@ class HiinaTurakas:
         if self.gameend != True and len(self.deck) > 0 and 400 < mouseX < 500 and (755)//2 < mouseY < (755)//2 + 145:
             self.handBottom.drawCard() 
             self.handBottom.order()
+
+            
             
     # clicking the active pile moves content to hand
-        if self.gameend != True and self.active_pile.x <= mouseX < self.active_pile.x+200 and self.active_pile.y <= mouseY <= self.active_pile.y+100:
+        if self.gameend and self.prepRound != True and len(self.active_pile) > 0 and self.active_pile.x <= mouseX < self.active_pile.x+200 and self.active_pile.y <= mouseY <= self.active_pile.y+145:
             self.active_pile.moveStack(self.handBottom)
             stroke(120,147,83)
 #            fill(120,147,83)
 #            rect(self.active_pile.x-35, self.active_pile.y,270,146)
             self.handBottom.order()
-    
+        # and skips your turn    
+            self.cpuPlays()
+            
                            
     # hand's left button
         if self.handBottom.x-35 <= mouseX < self.handBottom.x and self.handBottom.y <= mouseY <= self.handBottom.y+100 and self.handBottom.canleft == True:
@@ -498,7 +519,7 @@ class HiinaTurakas:
             
     # end turn button makes the cpu play
         if self.gameend != True and 150 < mouseX < 300 and 735 < mouseY < 855:
-            # TODO: add conditions
+            # TODO: add conditions for button availability
             self.cpuPlays()
 
                     
@@ -579,9 +600,13 @@ class HiinaTurakas:
 # gameplay loop
     def gameplay(self):
         if len(self.active_pile) > 0:
-            self.activeCount()
-#    self.cpuPlays()       # enable this for making cpu algorithm unload all at once 
-        
+            self.activeCount() 
+        if len(self.tableB1) == 3:
+            self.prepRound = False
+            if self.cpuStarts == True:
+                self.cpuPlays()
+                self.cpuStarts = False
+
     # checking player win
         if len(self.handBottom) == 0 and len(self.tableB2) == 0:
             self.gameend = True
