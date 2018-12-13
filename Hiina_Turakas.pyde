@@ -1,18 +1,14 @@
-import os, random
+import os, random, time
 path = os.getcwd()
 
 
 suits = ["clubs","diamonds","hearts","spades"]
 values = {2:15,3:3,4:4,5:5,6:6,7:15,8:15,9:9,10:15,"jack":11,"queen":12,"king":13,"ace":14}
 values7 = {2:1,3:3,4:4,5:5,6:6,7:1,8:1,9:9,10:1,"jack":11,"queen":12,"king":13,"ace":14}        # in case a 7 is played, special cards need to be always legal
-#size_x = 1400
-#size_y = 1050
-#size_x = 1600
-#size_y = 900
 
 
 class Card():
-    def __init__(self,number,suit,state="uncovered"): #, playability = False):
+    def __init__(self,number,suit,state="uncovered"):
         self.number = number
         self.suit = suit
         self.value = values[self.number]
@@ -43,6 +39,8 @@ class Card():
     def uncover(self):
         self.state = "uncovered"
 
+
+# A stack is any collection of cards, it is based on a list
 class Stack(list):      # the top card in the stack has a list index 0
     def __init__(self, arrows = False):
         self.arrows = arrows
@@ -62,11 +60,13 @@ class Stack(list):      # the top card in the stack has a list index 0
             self.remove(card)
             target.insert(0,card)
 
+    # uncovers and moves a single card
     def moveTo(self,card, target):
         card.uncover()
         target.insert(0,card)
         self.remove(card)
     
+# orders the cards in the stack from highest (index 0) to lowest (max index)    
     def order(self):
         #print "for the order"
         for count in range(len(self)):
@@ -89,14 +89,12 @@ class Stack(list):      # the top card in the stack has a list index 0
         for v in self[self.last_visible:self.first_visible:-1]:
             v.display(self.x+self.cnt,self.y)
             self.cnt += 30
-        stroke(120,147,83)
-        fill (120,147,83)
-        rect(self.x,self.y+170,25,-20)
+            
+        # adds number of cards as text below it
         fill (255)
         text (len(self),self.x,self.y+170)
 
-        # adds number of cards as text below it
-            
+        # adds scrolling arrows if necessary            
         if self.arrows == True and len(self) > 3:
             if self.first_visible == None:         # can not scroll further to the right
                 image(self.noright,self.x + 200,self.y,25,145)
@@ -110,12 +108,6 @@ class Stack(list):      # the top card in the stack has a list index 0
             else:
                 image(self.leftclick, self.x - 35, self.y,25,145)
                 self.canleft = True
-        else:
-#            stroke(120,147,83)
-#            fill(120,147,83)
-#            rect(self.x + 760,self.y,25,145)
-#            rect(self.x - 35,self.y,25,145)
-            pass
             
     
     # gets called by mouseclick function
@@ -152,33 +144,12 @@ class Stack(list):      # the top card in the stack has a list index 0
                 return True
             else:
                 return False    
-   
-   # used for hands and tablecards, cpu player finds what card in stack to play
-#    def playLowestLegal(self):
-#        canPlay = False
-#        if len(self) == 0:
-#            for c in reversed(self):
-#                if self.isLegal(c):
-#                    card = c
-#                    canPlay = True
-#                    break
-#            if canPlay == True:
-#                self.moveTo(card,self.active_pile)
-#                # checks for more of the same number
-#                for c in self:
-#                    if c.number == card.number:
-#                        self.moveTo(c,self.active_pile)
-#        # if there is no move possible, has to pick up active deck
-#            else:
-#                self.active_pile.moveStack(game.handTop)
 
-
-
+# The table cards are stacks containing the cards that get played when the deck is emptied
 class TableCards(Stack):
     def __init__(self,state = "uncovered"):
         Stack.__init__(self)
         self.state = state
-        # self.state = "uncovered"
         
         
     def display(self,x,y):
@@ -199,22 +170,15 @@ class TableCards(Stack):
         
     def clicked(self,card):
         self.moveTo(card,game.handBottom)
-#        stroke(120,147,83)
-#        fill(120,147,83)
-#        rect(self.x-20,self.y,360,160)
-        
 
-
+# A hand is a stack consisting of the cards that a player has at the moment.
 class Hand(Stack):
     def __init__(self,state="uncovered"):
         Stack.__init__(self)
         self.last_visible = 5
         self.cnt = 780     # starts with 6 cards, that means length 780
         self.state = state
-        
     
-
-
             
     def display(self,x,y):
         self.x = x
@@ -238,19 +202,15 @@ class Hand(Stack):
         
         if self.state == "uncovered":
             cnt = 0 
-#            for x in reversed(self):
-            for x in self[self.last_visible:self.first_visible:-1]:
+            for card in self[self.last_visible:self.first_visible:-1]:
     
-                if self.isLegal(x) == False:
-                    self.whitecard = loadImage(path+"/greycard.png")
-                    image(self.whitecard,self.x+cnt,self.y)
+                if self.isLegal(card) == False:    # greys out the cards that can't be played
+                    self.greycard = loadImage(path+"/greycard.png")
+                    image(self.greycard,self.x+cnt,self.y)
                 cnt += 130
             while(cnt < 760):
-#                stroke(120,147,83)
-#                fill(120,147,83)
-#                rect(self.x+cnt,self.y,100,145)
                 cnt += 130
-            if len(self)>5:
+            if len(self)>5:   # displays arrows only if the hand has at least 6 cards
                 if self.first_visible == None:         # can not scroll further to the right
                     image(self.noright,self.x + 760,self.y,25,145)
                     self.canright = False
@@ -263,15 +223,6 @@ class Hand(Stack):
                 else:
                     image(self.leftclick, self.x - 35, self.y,25,145)
                     self.canleft = True
-            else:
-#                stroke(120,147,83)
-#                fill(120,147,83)
-#                rect(self.x + 760,self.y,25,145)
-#                rect(self.x - 35,self.y,25,145)
-                pass
-        
-        # rect(self.x-30,self.y+70,20,20)
-        # rect(self.x+780,self.y+70,20,20)
 
                 
     # moves a card to the active pile
@@ -279,20 +230,14 @@ class Hand(Stack):
         self.moveTo(card,game.active_pile)
         if self.last_visible == len(self) and len(self)>5:
             self.change_last_visible(increase="False")
-
-#        if len(self) < 6 or self.last_visible > 6:
-#            self.change_last_visible(increase="False")
     
-
         
-    def clicked(self,card):
-        
+    def clicked(self,card):        
         if self.isLegal(card):
             self.playCard(card)
 
 
-
-# A deck is a stack that starts with 52 cards instead of being empty upton creation
+# A deck is a stack that starts with 52 cards instead of being empty upon creation
 class Deck(Stack):
     def __init__(self):
         Stack.__init__(self)
@@ -307,17 +252,10 @@ class Deck(Stack):
         self.img = loadImage(path+"/playing-cards-assets/png/back@2x.png")
         if len(self)>0:
             image(self.img,self.x,self.y,100,145)
-#            fill(120,147,83)
-#            rect(self.x,self.y+170,25,-20)
             fill (255)
             text (len(self),self.x,self.y+170)
         # adds number of cards as text below it
-        else:
-#            fill(120,147,83)
-#            rect(self.x,self.y,100,145)
-#            fill (120,147,83)
-#            rect(self.x,self.y+170,20,-20)
-            pass
+
     
 
 # the main game class
@@ -327,10 +265,15 @@ class HiinaTurakas:
         # initialising boolean variables
         self.prepRound = True          # the first round is the preparation round
         self.cpuStarts = None          # who starts the game?
-        self.userPlayed = False         # has the user played a card on his turn?
+        self.userPlayed = False        # has the user played a card on his turn?
         self.blockEnd = True           # blocks the 'end turn' button
-        self.instructions = False      # toggles instructions on the right
+        self.blockDeck = True          # blocks the player from drawing cards from the deck
         self.gameend = False           # win/lose condition
+        self.won = None                # the winner of the game
+        self.specialcards = loadImage(path+"/specialcard.png") #the image for the special card information box
+        self.instrucimg = loadImage(path+"/Imageofinstructions.png") #the image for the instructions box
+        
+        self.greycard = loadImage(path+"/greycard.png")    # the image to grey out cards
         
         # starting the stacks
         self.active_pile = Stack(arrows=True)
@@ -349,19 +292,13 @@ class HiinaTurakas:
         self.death = Rebirth()
         
 
-        
-
-        
     def display(self):
         
         background(120,147,83)
         
-        
         self.active_pile.display((1325)//2,(755)//2)
         self.deck.display(400,(755)//2)
         self.discard_pile.display(1000,(755)//2)
-#        self.handTop.display(800-self.handTop.cnt//2,20)
-#        self.handBottom.display((1600-self.handBottom.cnt)//2,735)
         self.handTop.display(440,20)
         self.handBottom.display(440,735)
             
@@ -389,26 +326,31 @@ class HiinaTurakas:
             fill (0)
         text ("End Turn", 170,795)
         
-        if self.instructions == False:
-            fill (255)
-            rect(1300,60,200,500)
-            fill (0)
-            text ("Instructions", 1350,280)
-        elif self.instructions == True:
-            fill (255)
-            rect(1300,60,200,500)
-            fill (0)
-            text ("Nothing", 1320,100)
-            text ("in here",1320,120)
-            text ("yet",1320,140)
-            fill (0)
-            rect(1420,510,70,30)
-            fill (255)
-            text("return",1425,530)
+        if self.blockDeck and len(self.deck) > 0:
+            image(self.greycard,self.deck.x,self.deck.y)
+        
+        if len(self.deck) > 0 or len(self.handBottom):
+            for cnt in range(len(self.tableB1)): 
+                image(self.greycard,self.tableB1.x+cnt*110,self.tableB1.y)
+
+        image(self.instrucimg,1250,60)
+        self.specialcards = loadImage(path+"/specialcard.png")
+        image(self.specialcards,80,200,250,400)
+
         
         if self.gameend != True:
             self.gameplay()
-            
+        elif self.won == "The computer has won!":
+            rect(self.handTop.x,self.handTop.y,300,100)
+            fill(255)
+            text(self.won, self.handTop.x+20, self.handTop.y+60)
+        else:
+            rect(self.handBottom.x,self.handBottom.y,300,100)
+            fill(255)
+            text(self.won, self.handBottom.x+20, self.handBottom.y+60)
+
+# initializer function that fills the stacks from cards from the deck
+# called after everything is instantiated                    
     def startHands(self):
         for count in range(6):
             self.handTop.drawCard()
@@ -416,20 +358,18 @@ class HiinaTurakas:
         self.handBottom.order()
         self.handTop.order()
         for count in range(3):
-#            self.tableB1.drawCard()
             self.tableB2.drawCard()
             self.handTop.moveTo(self.handTop[0],self.tableT1)
-#            self.tableT1.drawCard()
             self.tableT2.drawCard()
         self.tableT1.order()
         self.tableT2.order()
 
+# decides who starts first based on lower card
     def whoBegins(self):
-    # decides who starts first based on lower card
         if self.handTop[2].value < self.handBottom [2].value:
             self.cpuStarts = True
         elif self.handTop[2].value == self.handBottom [2].value:   
-        # same value = chooses randomly
+    # same value --> chooses randomly
             choice = random.randint(0,1)
             if choice == 0:
                 self.cpuStarts = True
@@ -437,7 +377,7 @@ class HiinaTurakas:
             self.cpuStarts = False
    
 # checks whether to discard the active pile
-# discards when 10 is played or when there are 4 same numbers in a row         
+# discards when 10 is played or when there are 4 of the same numbers played in a row         
     def activeCount(self):
         self.sequential = 0
         num = self.active_pile[0].number
@@ -446,38 +386,34 @@ class HiinaTurakas:
                 if self.active_pile[cnt].number == num:
                     self.sequential += 1
         if self.sequential == 4 or num == 10:
+            time.sleep(0.5)
             self.active_pile.moveStack(self.discard_pile)
             self.userPlayed = False
-#            stroke(120,147,83)
-#            fill(120,147,83)
-#            rect((1325)//2-35, (755)//2,270,146)
-    
-        
-
+            self.blockEnd = True
+            
             
     def click(self):
         r = mouseX
         c = mouseY
-        
+
+    # finds whether the new game button was clicked        
         if  80 <= mouseX <=230 and 60 <= mouseY <=130:
             self.Game_New = True
-        if 1300 <= mouseX <= 1500 and 60<= mouseY <= 560:
-            self.instructions = True
-        if 1420 <= mouseX <= 1490 and 520 <= mouseY <= 540:
-            self.instructions = False
             
     # finds whether a card in the hand was clicked
         if self.gameend != True:
             for card in self.handBottom[self.handBottom.last_visible:self.handBottom.first_visible:-1]:
                 if card.x != None and card.y != None and card.x < mouseX < card.x+100 and card.y < mouseY < card.y+145:
-                    if self.prepRound == True:
+                    if self.prepRound == True:  # during the initial round, add cards in front of the hand
                         self.tableB1.append(card)
                         self.handBottom.remove(card)
                     else:
-                        self.handBottom.clicked(card)
-                        if self.handBottom.isLegal(card):                        
-                            if len(self.handBottom) >= 3:
-                                self.blockEnd = False
+                        if len(self.deck) !=0 and len(self.handBottom) < 3:
+                            self.blockEnd = True
+                        self.handBottom.clicked(card)   # otherwise add them to the active pile
+                        if self.handBottom.isLegal(card):
+                            if len(self.handBottom) >= 3 and card.number !=2:
+                                self.blockEnd = False     # if player does not need to pick up and is not forced to play, enable turn end
                             if card.number != 2 and self.userPlayed == False:
                                 self.userPlayed = card.number
                                 if len(self.deck) == 0:
@@ -497,7 +433,7 @@ class HiinaTurakas:
                         
         
     # clicking the deck picks up a card
-        if self.gameend != True and self.prepRound != True and len(self.deck) > 0 and len(self.handBottom) < 3 and 400 < mouseX < 500 and (755)//2 < mouseY < (755)//2 + 145:
+        if self.blockDeck == False and 400 < mouseX < 500 and (755)//2 < mouseY < (755)//2 + 145:
             self.handBottom.drawCard() 
             self.handBottom.order()
             if len(self.handBottom) == 3 or len(self.deck) == 0:
@@ -505,13 +441,9 @@ class HiinaTurakas:
                     self.blockEnd = False
 
             
-            
     # clicking the active pile moves content to hand
         if self.gameend != True and self.prepRound != True and len(self.active_pile) > 0 and self.userPlayed == False and self.active_pile.x <= mouseX < self.active_pile.x+200 and self.active_pile.y <= mouseY <= self.active_pile.y+145:
             self.active_pile.moveStack(self.handBottom)
-            stroke(120,147,83)
-#            fill(120,147,83)
-#            rect(self.active_pile.x-35, self.active_pile.y,270,146)
             self.handBottom.order()
         # and skips your turn    
             self.cpuPlays()
@@ -531,10 +463,10 @@ class HiinaTurakas:
         if self.active_pile.x+200 < mouseX <= self.active_pile.x+235 and self.active_pile.y <= mouseY <= self.active_pile.y+100 and self.active_pile.canright == True:
             self.active_pile.change_last_visible(increase = False)
             
-#     discard pile's left button
+    # discard pile's left button
         if self.discard_pile.x-35 <= mouseX < self.discard_pile.x and self.discard_pile.y <= mouseY <= self.discard_pile.y+100 and self.discard_pile.canleft == True:
             self.discard_pile.change_last_visible(increase = True)
-#     discard pile's right button
+    # discard pile's right button
         if self.discard_pile.x+200 < mouseX <= self.discard_pile.x+235 and self.discard_pile.y <= mouseY <= self.discard_pile.y+100 and self.discard_pile.canright == True:
             self.discard_pile.change_last_visible(increase = False)
             
@@ -543,16 +475,17 @@ class HiinaTurakas:
             self.cpuPlays()
 
 # the decision-making for the computer player                    
-    def cpuPlays(self):
-        # local variables
-         pickedUp = False    # resets computer turn states
-         canPlay = False
+    def cpuPlays(self):       
+        # local variables, resets computer turn states
+         pickedUp = False    # computer has picked up cards from the active pile
+         canPlay = False     # becomes true when there is a legal card the computer can play
+         
+         self.blockEnd = True        
          self.userPlayed = False   # resets player turn states
-         self.blockEnd = True
+         
          
          if len(self.deck) == 0 and len(self.handTop) == 0:
     # plays the lowest legal card in covered table cards
-#            self.tableT1.playLowestLegal()
             if len(self.tableT1) == 0:
                  for c in reversed(self.tableT2):
                      if self.tableT2.isLegal(c):
@@ -567,16 +500,13 @@ class HiinaTurakas:
                             if c.number == card.number:
                                 self.tableT2.moveTo(c,self.active_pile)
                     else:
-                        print "computer wins"
                         self.gameend = True
-                 else:
+                        self.won = "The computer has won!"
+                 else:   # if no move is possible, picks up the active pile
                     self.active_pile.moveStack(self.handTop)
-                    pickedUp = True                 
-
-                       
+                    pickedUp = True                                        
             else:
     # plays the lowest legal card in uncovered table cards
- #           self.tableT2.playLowestLegal()
                  for c in reversed(self.tableT1):
                      if self.tableT1.isLegal(c):
                          card = c
@@ -589,13 +519,12 @@ class HiinaTurakas:
                         for c in self.tableT1:
                             if c.number == card.number:
                                 self.tableT1.moveTo(c,self.active_pile)
-                 else:
+                 else:   # if no move is possible, picks up the active pile
                     self.active_pile.moveStack(self.handTop)
                     pickedUp = True      
          else:
     # plays the lowest legal card in hand
             self.handTop.order()
-#            self.handTop.playLowestLegal()
             for c in reversed(self.handTop):
                 if self.handTop.isLegal(c):
                     card = c
@@ -609,37 +538,46 @@ class HiinaTurakas:
                 if len(self.handTop) > 0:
                     for c in self.handTop:
                         if c.number == card.number:
+                            self.display()   # refreshes screen to show state between moves
+                            time.sleep(0.5)
                             self.cpuPlays()
-            else:
+            else:   # if no move is possible, picks up the active pile
                 self.active_pile.moveStack(self.handTop)
                 pickedUp = True
         # checks if it can play instantly again
          if len(self.active_pile) > 0 and self.active_pile[0].number == 2:
-             self.cpuPlays()
-         if len(self.active_pile) > 0:
+            self.display()   # refreshes screen to show state between moves
+            time.sleep(0.5)
+            self.cpuPlays()
+         if len(self.active_pile) > 0:    # checks for discarding active pile
             self.activeCount()
          if pickedUp == False and len(self.active_pile) == 0:
-              self.cpuPlays()
+            self.display()   # refreshes screen to show state between moves
+            time.sleep(0.5)
+            self.cpuPlays()             # if it discarded, play again
          
 # gameplay loop
     def gameplay(self):
         
-        
-        if len(self.active_pile) > 0:
-            self.activeCount() 
+        if len(self.active_pile) > 0:   # keeps track of the same type of cards in the active pile
+            self.activeCount()          # if 4 similar cards are placed in a row, discards the pile 
         if len(self.tableB1) == 3:
-            self.prepRound = False
+            self.prepRound = False      # ends the preparation round
         # these two if statements will only happen during the first loop
             if self.cpuStarts == None:
                 self.whoBegins()
             if self.cpuStarts == True:
                 self.cpuPlays()
                 self.cpuStarts = False
-
+                
+        if self.gameend != True and self.prepRound != True and len(self.deck) > 0 and len(self.handBottom) < 3:
+            self.blockDeck = False
+        else:
+            self.blockDeck = True
     # checking player win
         if len(self.handBottom) == 0 and len(self.tableB2) == 0:
             self.gameend = True
-            print "player wins"  
+            self.won = "The player has won!"
                 
 # this class serves as an object separate from the game
 # it gets called to restart it when the 'new game' button is clicked
@@ -653,39 +591,22 @@ class Rebirth():
         game = HiinaTurakas()
         game.startHands()
         
-# initializing
+        
+# initializing the game
 
 game = HiinaTurakas()
 game.startHands()
 
    
-
-    
-#print(path+"/playing-cards-assets/png/"+str(card.number)+"_of_"+str(card.suit)+".png")
-def setup():
-     
-    #size(1280,720)
-    #size(1280,960)
-    #size(1400,1050)
-    #size(size_x,size_y)
+def setup():    
     size(1600,900)
     background(120,147,83)
     
 def draw():
     textSize(20)
     fill(0,0,0)
-
-    #game.handTop.display((size_x//2)-handTop.cnt//2,20)
-    #game.handBottom.display((size_x-handBottom.cnt)//2,size_y-145-20)
-    #game.active_pile.display((size_x-275)//2,(size_y-145)//2)
-    #game.deck.display(size_x//4,(size_y-145)//2)
-    #game.discard_pile.display((3*size_x)//4-200,(size_y-145)//2)
-
-
-
     game.display()
 
 
-    
 def mouseClicked():
     game.click()
