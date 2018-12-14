@@ -339,10 +339,10 @@ class HiinaTurakas:
         if self.cpuStarts == True:
             self.cpuStarts = False
             self.cpuPlays()
-
-        
+            
         if self.gameend != True:
             self.gameplay()
+        
         elif self.won == "The computer has won!" and len(self.handTop) > 0:   # this is a fix to a bug
             self.gameend = False
             self.gameplay()
@@ -368,11 +368,10 @@ class HiinaTurakas:
             self.handTop.moveTo(self.handTop[0],self.tableT1)
             self.tableT2.drawCard()
         self.tableT1.order()
-        self.tableT2.order()
 
 # decides who starts first based on lower card
     def whoBegins(self):
-        if self.handTop[2].value < self.handBottom [2].value:
+        if self.handTop[2].value < self.handBottom[2].value:
             self.cpuStarts = True
         elif self.handTop[2].value == self.handBottom [2].value:   
     # same value --> chooses randomly
@@ -487,25 +486,24 @@ class HiinaTurakas:
         
         
         if len(self.deck) == 0 and len(self.handTop) == 0:
-    # plays the lowest legal card in covered table cards
-            if len(self.tableT1) == 0:
-                for c in reversed(self.tableT2):
-                    if self.tableT2.isLegal(c):
-                        card = c
-                        canPlay = True
-                        break
-                if canPlay == True: 
+    # tries to play the first card in covered table cards
+            if len(self.tableT1) == 0 and self.gameend != True:
+                if self.tableT2.isLegal(self.tableT2[0]):
+                    card = self.tableT2[0]
                     self.tableT2.moveTo(card,self.active_pile)
                 # checks for more of the same number
                     if len(self.tableT2) > 0:
-                        for c in self.tableT2:
-                            if c.number == card.number:
+                        if self.tableT2[0].number == card.number:
                                 self.display()
-                                self.tableT2.moveTo(c,self.active_pile)
-                    else:   # if the bottom table cards of the computer are empty, the computer wins
-                        self.gameend = True
-                        self.won = "The computer has won!"
+                                self.tableT2.moveTo(self.tableT2[0],self.active_pile)
+                        # checks for even more of the same number
+                                if len(self.tableT2) > 0:
+                                    if self.tableT2[0].number == card.number:
+                                            self.display()
+                                            self.tableT2.moveTo(self.tableT2[0],self.active_pile)
+                                                                
                 else:   # if no move is possible, picks up the active pile
+                    self.tableT2.moveTo(self.tableT2[0],self.handTop)  # pick up the hidden card that was checked 
                     self.active_pile.moveStack(self.handTop)
                     pickedUp = True
                     
@@ -550,16 +548,21 @@ class HiinaTurakas:
             else:   # if no move is possible, picks up the active pile
                 self.active_pile.moveStack(self.handTop)
                 pickedUp = True
-        # checks if it can play instantly again
-        if len(self.active_pile) > 0 and self.active_pile[0].number == 2:
-            self.display()   # refreshes screen to show state between moves
-            self.cpuPlays()
-        if len(self.active_pile) > 0:    # checks for discarding active pile
-            self.activeCount()
-        if pickedUp == False and len(self.active_pile) == 0:
-            self.display()   # refreshes screen to show state between moves
-            self.cpuPlays()             # if it discarded, play again
-        
+
+        if len(self.handTop) == 0 and len(self.tableT2) == 0:
+            self.gameend = True
+            self.won = "The computer has won!"
+        else:
+     # checks if it can play instantly again
+            if len(self.active_pile) > 0 and self.active_pile[0].number == 2:
+                self.display()   # refreshes screen to show state between moves
+                self.cpuPlays()
+            if len(self.active_pile) > 0:    # checks for discarding active pile
+                self.activeCount()
+            if pickedUp == False and len(self.active_pile) == 0:
+                self.display()   # refreshes screen to show state between moves
+                self.cpuPlays()             # if it discarded, play again
+            
 # gameplay loop
     def gameplay(self):
         
