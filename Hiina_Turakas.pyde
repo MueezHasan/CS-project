@@ -440,6 +440,7 @@ class HiinaTurakas:
             if len(self.handBottom) == 3 or len(self.deck) == 0:
                 if len(self.active_pile) != 0 and self.active_pile[0].number != 2:
                     self.blockEnd = False
+                self.blockDeck == True
 
             
     # clicking the active pile moves content to hand
